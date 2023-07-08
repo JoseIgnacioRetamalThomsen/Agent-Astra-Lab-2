@@ -1,0 +1,107 @@
+agent Main {
+    module Console console;
+    module System system;
+    module Prelude  prelude;
+    module Debug debug;
+  
+
+     types lightOntology {
+        formula switch(string, string);
+        formula light(string, string); 
+        formula transition(string, string);
+        formula disco(string);
+        formula lightToSwitchMap(string, string);    
+        formula discoAction(string, list);
+    }
+
+    initial switch("s1", "off");
+    initial switch("s2", "off");
+    initial light("l1", "off");
+    initial light("l2", "off");
+    initial transition("off","on");
+    initial transition("on","off");
+    initial discoAction("true", [["on", "off"],["off", "on"],["on", "on"],["off", "off"]]);
+    initial discoAction("false",[0]);
+    initial disco("false");
+    initial lightToSwitchMap("s1", "l1");
+    initial lightToSwitchMap("s2", "l2");
+
+     rule +!main(list args) {
+        wait(light("l1","off"));
+        wait(light("l2","off"));
+        system.sleep(2000);
+        !flip("s1");
+        wait(light("l1","on"));
+        wait(light("l2","off"));
+        system.sleep(2000);
+        !flip("s1");
+        !flip("s2");
+        wait(light("l1","off"));
+        wait(light("l2","on"));
+        system.sleep(2000);
+        !flip("s1");
+        wait(disco("true"));
+        system.sleep(20000);
+        !flip("s1");
+        !flip("s2");   
+        wait(disco("false"));
+        !main("");
+    }
+
+    /* DELIBERATION RULES */
+    rule +switch(string switchA,"off") : switch(string switchB,"off")  & (switchA ~= switchB) & disco("true")  {
+        !disco("false");
+        !light("l1","off");
+        !light("l2","off");      
+    }
+
+    rule +switch(string switchA , "on"): switch(string switchB, "on")  & (switchA ~= switchB) & disco("false"){
+        !disco("true");
+    }
+ 
+    rule +switch(string Switch, string State): lightToSwitchMap(Switch, string Light) {
+        !light(Light, State);
+    }
+
+    /* MEANS-END RULES */
+    rule +!disco(string NewState): discoAction(NewState, list Action) {
+        -+disco(NewState);
+        !discoLoop(Action);
+    }
+
+    rule +!discoLoop([list H | list T]) : disco("true") {
+        !discoStep(H);
+        !discoLoop( T + [H]); 
+    }
+
+    rule +!discoLoop([list H | list T]) {
+    }
+
+    rule +!discoStep(list List) {
+        !light("l1", at_index(List, 0, string));
+        !light("l2", at_index(List, 1, string));
+        console.println("");
+        system.sleep(1000);
+    }
+
+    rule +disco(string IsDisco) {
+        console.println("Disco time is " + IsDisco);
+    }
+
+    rule +light(string LightNum, string State) {
+        console.println("Light: " + LightNum + " is in state: " + State);
+    }
+
+    rule +!light(string LightNum, string NewState): transition(string ActualState, NewState) & light(LightNum, ActualState) {
+        -light(LightNum, ActualState);
+        +light(LightNum, NewState);   
+    }
+
+    rule +!light(string LightNun, string State) {
+    }
+
+    rule +!flip(string SwitchNum) : switch(SwitchNum, string SwitchState) & transition(SwitchState, string StateToSwitch) {
+        -switch(SwitchNum, SwitchState);
+        +switch(SwitchNum, StateToSwitch);
+    }
+}

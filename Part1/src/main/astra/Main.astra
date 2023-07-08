@@ -1,0 +1,34 @@
+agent Main {
+    module Console console;
+
+    types lightOntology {
+        formula switch(string, string);
+        formula light(string, string); 
+        formula transition(string, string);
+        formula lightToSwitchMap(string, string);
+    }
+
+    initial light("l1", "off");
+    initial switch("s1","on" );
+    initial transition("off","on");
+    initial transition("on","off");
+    initial lightToSwitchMap("s1", "l1");
+
+    /* DELIBERATION RULES */
+    rule +switch(string Switch, string State): lightToSwitchMap(Switch, string Light) {
+        !light(Light,State);
+    }
+
+    /* MEANS-END RULES */
+    rule +light(string Light, string State) {
+        console.println("Light: " + Light + " is in state: " + State);
+    }
+
+    rule +!light(string Light, string NewState) : transition(string ActualState, NewState) & light(Light, ActualState) {
+        -light(Light, ActualState);
+        +light(Light, NewState);
+    }
+
+    rule +!light(string LightNun, string State) {
+    }
+}
